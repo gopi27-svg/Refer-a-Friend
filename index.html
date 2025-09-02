@@ -1,46 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Refer a Friend</title>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo="><!-- suppress 404 favicon -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-    body {
-      background: linear-gradient(to right top, #3b0064, #6f00a3);
-      min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 2rem; color: #fff;
-    }
-    .container {
-      background: rgba(255, 255, 255, 0.05);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4); border-radius: 20px; backdrop-filter: blur(15px);
-      padding: 3rem 2rem; width: 100%; max-width: 600px; animation: fadeIn 1s ease forwards;
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px);} to { opacity: 1; transform: translateY(0);} }
-    h1 { text-align: center; margin-bottom: 2rem; font-weight: 600; font-size: 2rem; color: #ffeaff; }
-    .field { margin-bottom: 1.5rem; position: relative; }
-    .field input, .field select {
-      width: 100%; padding: 1rem; border-radius: 10px; border: 1px solid #ffffff30;
-      background: rgba(255,255,255,0.1); color: #fff; font-size: 1rem; outline: none; transition: 0.3s ease;
-    }
-    .field input::placeholder, .field select option { color: #ccc; }
-    .field label {
-      position: absolute; top: -12px; left: 12px; background: #6f00a3; padding: 0 8px;
-      font-size: 0.9rem; color: #ffeaff; border-radius: 6px;
-    }
-    button {
-      width: 100%; padding: 1rem; border: none; border-radius: 10px;
-      background: linear-gradient(to right, #a05dff, #c471ed); color: white; font-size: 1.2rem; font-weight: 600; cursor: pointer;
-      transition: background 0.3s ease;
-    }
-    button:hover { background: linear-gradient(to right, #843ae0, #b24cfb); }
-    #response { text-align: center; margin-top: 1rem; font-size: 1rem; }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'Poppins',sans-serif}
+    body{background:linear-gradient(to right top,#3b0064,#6f00a3);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:2rem;color:#fff}
+    .container{background:rgba(255,255,255,.05);box-shadow:0 8px 32px rgba(0,0,0,.4);border-radius:20px;backdrop-filter:blur(15px);padding:3rem 2rem;width:100%;max-width:600px;animation:fadeIn 1s ease forwards}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    h1{text-align:center;margin-bottom:2rem;font-weight:600;font-size:2rem;color:#ffeaff}
+    .field{margin-bottom:1.5rem;position:relative}
+    .field input,.field select{width:100%;padding:1rem;border-radius:10px;border:1px solid #ffffff30;background:rgba(255,255,255,.1);color:#fff;font-size:1rem;outline:none;transition:.3s}
+    .field input::placeholder,.field select option{color:#ccc}
+    .field label{position:absolute;top:-12px;left:12px;background:#6f00a3;padding:0 8px;font-size:.9rem;color:#ffeaff;border-radius:6px}
+    button{width:100%;padding:1rem;border:none;border-radius:10px;background:linear-gradient(to right,#a05dff,#c471ed);color:#fff;font-size:1.2rem;font-weight:600;cursor:pointer;transition:background .3s}
+    button:hover{background:linear-gradient(to right,#843ae0,#b24cfb)}
+    #response{text-align:center;margin-top:1rem;font-size:1rem}
+    iframe{display:none;width:0;height:0;border:0}
   </style>
 </head>
 <body>
   <div class="container">
     <h1>REFER A FRIEND</h1>
-    <form id="referralForm" autocomplete="off" novalidate>
+
+    <!-- Hidden target iframe -->
+    <iframe name="uploadTarget" id="uploadTarget"></iframe>
+
+    <!-- Action points to your Apps Script Web App -->
+    <form id="referralForm" autocomplete="off" novalidate
+          action="https://script.google.com/macros/s/AKfycbz5qUW51OHV2p8UieXcfWVs84IZTdJpjyuZbQfJuVtfl15Z87yvHMENcsNtupgM9lt8/exec"
+          method="POST"
+          enctype="multipart/form-data"
+          target="uploadTarget">
+
       <div class="field">
         <label for="employeeName">EMPLOYEE NAME (Referred by)</label>
         <input type="text" id="employeeName" name="employeeName" required />
@@ -100,11 +95,8 @@
   </div>
 
   <script>
-    // 1) Set your current Apps Script Web App URL here:
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwNl1Zr9GVkWaN1iyDFw-ZzkpGp6x2FtZmiifLZGHQBLj7VQoAuODC12fXiHVVmZdC0/exec"; // e.g. https://script.google.com/macros/s/AKfycb.../exec
-
-    document.addEventListener('DOMContentLoaded', () => {
-      // Populate roles
+    // Populate roles
+    (function(){
       const roles = [
         "Faculty / Teaching Role",
         "Sales (Inside Sales, Referrals, Channel Sales)",
@@ -120,101 +112,48 @@
         "Technology",
         "University Relations"
       ];
-      const referredFor = document.getElementById("referredFor");
-      roles.forEach(role => {
-        const opt = document.createElement("option");
-        opt.value = role; opt.textContent = role;
-        referredFor.appendChild(opt);
-      });
+      const sel = document.getElementById('referredFor');
+      roles.forEach(r => { const o = document.createElement('option'); o.value=r; o.textContent=r; sel.appendChild(o); });
+    })();
 
-      const form = document.getElementById('referralForm');
-      const responseDiv = document.getElementById('response');
-      const submitBtn = document.getElementById('submitBtn');
+    const form = document.getElementById('referralForm');
+    const responseDiv = document.getElementById('response');
+    const submitBtn = document.getElementById('submitBtn');
 
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        responseDiv.textContent = '';
-        responseDiv.style.color = '#fff';
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
+    form.addEventListener('submit', (e) => {
+      const file = document.getElementById('cvFile').files[0];
+      if (!file) { e.preventDefault(); msg('❌ Please upload a CV file', true); return; }
+      const ext = (file.name.split('.').pop()||'').toLowerCase();
+      if (!['pdf','doc','docx'].includes(ext)) { e.preventDefault(); msg('❌ Only PDF/DOC/DOCX allowed', true); return; }
+      responseDiv.textContent = '';
+      submitBtn.disabled = true; submitBtn.textContent = 'Submitting...';
+    });
 
-        try {
-          const fileInput = document.getElementById('cvFile');
-          const file = fileInput.files[0];
-          if (!file) {
-            throw new Error('Please upload a CV file.');
-          }
-
-          // Only allow PDF/DOC/DOCX
-          const okExt = ['pdf','doc','docx'];
-          const ext = (file.name.split('.').pop() || '').toLowerCase();
-          if (!okExt.includes(ext)) {
-            throw new Error('Only PDF/DOC/DOCX are allowed.');
-          }
-
-          const dataUrl = await fileToDataURL(file);
-
-          const payload = {
-            employeeName: form.employeeName.value.trim(),
-            referredFor: form.referredFor.value,
-            employeeCode: form.employeeCode.value.trim(),
-            employeeEmail: form.employeeEmail.value.trim(),
-            candidateName: form.candidateName.value.trim(),
-            candidatePhone: form.candidatePhone.value.trim(),
-            candidateLocation: form.candidateLocation.value.trim(),
-            proposedLocation: form.proposedLocation.value,
-            file: {
-              name: file.name,
-              type: file.type || mimeFromExt(ext),
-              data: dataUrl
-            }
-          };
-
-          const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          const text = await res.text();
-          let json;
-          try { json = JSON.parse(text); } catch { json = { ok: res.ok, message: text }; }
-
-          if (!res.ok || json.error) {
-            throw new Error(json.error || json.message || 'Submission failed');
-          }
-
+    // Listen for Apps Script postMessage
+    window.addEventListener('message', (ev) => {
+      try {
+        const data = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data;
+        if (data && data.ok) {
           form.innerHTML = `
             <h2 style="text-align:center; color:#bbffbb; margin-top: 2rem;">
               🎉 Referral submitted successfully!
             </h2>
             <p style="text-align:center; color:#bbffbb;">Thank you.</p>
           `;
-        } catch (err) {
-          responseDiv.style.color = '#ff6b6b';
-          responseDiv.textContent = '❌ ' + (err.message || String(err));
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Submit';
+        } else {
+          msg('❌ ' + (data && data.error ? data.error : 'Submission failed'), true);
+          submitBtn.disabled = false; submitBtn.textContent = 'Submit';
         }
-      });
-
-      function fileToDataURL(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = e => resolve(e.target.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      }
-
-      function mimeFromExt(ext) {
-        if (ext === 'pdf') return 'application/pdf';
-        if (ext === 'doc') return 'application/msword';
-        if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        return 'application/octet-stream';
+      } catch {
+        msg('❌ Submission failed', true);
+        submitBtn.disabled = false; submitBtn.textContent = 'Submit';
       }
     });
+
+    function msg(text, isError){
+      responseDiv.style.color = isError ? '#ff6b6b' : '#fff';
+      responseDiv.textContent = text;
+    }
   </script>
 </body>
 </html>
