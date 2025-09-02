@@ -4,7 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Refer a Friend</title>
-  <link rel="icon" href="data:;base64,iVBORw0KGgo="><!-- suppress 404 favicon -->
+  <!-- tiny blank favicon to silence 404 -->
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0;font-family:'Poppins',sans-serif}
@@ -19,23 +20,13 @@
     button{width:100%;padding:1rem;border:none;border-radius:10px;background:linear-gradient(to right,#a05dff,#c471ed);color:#fff;font-size:1.2rem;font-weight:600;cursor:pointer;transition:background .3s}
     button:hover{background:linear-gradient(to right,#843ae0,#b24cfb)}
     #response{text-align:center;margin-top:1rem;font-size:1rem}
-    iframe{display:none;width:0;height:0;border:0}
   </style>
 </head>
 <body>
   <div class="container">
     <h1>REFER A FRIEND</h1>
 
-    <!-- Hidden target iframe -->
-    <iframe name="uploadTarget" id="uploadTarget"></iframe>
-
-    <!-- Action points to your Apps Script Web App -->
-    <form id="referralForm" autocomplete="off" novalidate
-          action="https://script.google.com/macros/s/AKfycbyUY76sdaBW17LSQ-OsHhHjVzQOq-KTgpy7iAUe2rnmUeAN8mC4Qxf8AfQRM2aD_Zle/exec"
-          method="POST"
-          enctype="multipart/form-data"
-          target="uploadTarget">
-
+    <form id="referralForm" autocomplete="off" novalidate>
       <div class="field">
         <label for="employeeName">EMPLOYEE NAME (Referred by)</label>
         <input type="text" id="employeeName" name="employeeName" required />
@@ -95,6 +86,9 @@
   </div>
 
   <script>
+    // Your deployed Apps Script Web App URL:
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxgdsv8Si300F39-Ip9q2BRuWMdAU9yB8G64asWPTkVwVmkgbuClH8sVU6LDwUlTTJk/exec";
+
     // Populate roles
     (function(){
       const roles = [
@@ -120,39 +114,76 @@
     const responseDiv = document.getElementById('response');
     const submitBtn = document.getElementById('submitBtn');
 
-    form.addEventListener('submit', (e) => {
-      const file = document.getElementById('cvFile').files[0];
-      if (!file) { e.preventDefault(); msg('❌ Please upload a CV file', true); return; }
-      const ext = (file.name.split('.').pop()||'').toLowerCase();
-      if (!['pdf','doc','docx'].includes(ext)) { e.preventDefault(); msg('❌ Only PDF/DOC/DOCX allowed', true); return; }
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
       responseDiv.textContent = '';
-      submitBtn.disabled = true; submitBtn.textContent = 'Submitting...';
-    });
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
 
-    // Listen for Apps Script postMessage
-    window.addEventListener('message', (ev) => {
       try {
-        const data = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data;
-        if (data && data.ok) {
-          form.innerHTML = `
-            <h2 style="text-align:center; color:#bbffbb; margin-top: 2rem;">
-              🎉 Referral submitted successfully!
-            </h2>
-            <p style="text-align:center; color:#bbffbb;">Thank you.</p>
-          `;
-        } else {
-          msg('❌ ' + (data && data.error ? data.error : 'Submission failed'), true);
-          submitBtn.disabled = false; submitBtn.textContent = 'Submit';
-        }
-      } catch {
-        msg('❌ Submission failed', true);
-        submitBtn.disabled = false; submitBtn.textContent = 'Submit';
+        // Validate file
+        const file = document.getElementById('cvFile').files[0];
+        if (!file) throw new Error('CV file is required');
+        const ext = (file.name.split('.').pop()||'').toLowerCase();
+        if (!['pdf','doc','docx'].includes(ext)) throw new Error('Only PDF/DOC/DOCX allowed');
+
+        // Convert file → Data URL (Base64)
+        const dataUrl = await toDataURL(file);
+
+        // Build payload
+        const payload = {
+          employeeName: form.employeeName.value.trim(),
+          referredFor: form.referredFor.value,
+          employeeCode: form.employeeCode.value.trim(),
+          employeeEmail: form.employeeEmail.value.trim(),
+          candidateName: form.candidateName.value.trim(),
+          candidatePhone: form.candidatePhone.value.trim(),
+          candidateLocation: form.candidateLocation.value.trim(),
+          proposedLocation: form.proposedLocation.value,
+          file: { name: file.name, type: file.type || mimeFromExt(ext), data: dataUrl }
+        };
+
+        // POST as text/plain to avoid CORS preflight
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        // Parse response safely
+        const text = await res.text();
+        let json; try { json = JSON.parse(text); } catch { json = { ok: res.ok, message: text }; }
+
+        if (!json.ok) throw new Error(json.error || json.message || 'Submission failed');
+
+        // Success screen
+        form.innerHTML = `
+          <h2 style="text-align:center; color:#bbffbb; margin-top: 2rem;">
+            🎉 Referral submitted successfully!
+          </h2>
+          <p style="text-align:center; color:#bbffbb;">Thank you.</p>
+        `;
+      } catch (err) {
+        responseDiv.style.color = '#ff6b6b';
+        responseDiv.textContent = '❌ ' + (err.message || String(err));
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit';
       }
     });
 
-    function msg(text, isError){
-      responseDiv.style.color = isError ? '#ff6b6b' : '#fff';
-      responseDiv.textContent = text;
+    function toDataURL(file){
+      return new Promise((resolve, reject)=>{
+        const r = new FileReader();
+        r.onload = e => resolve(e.target.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+    }
+    function mimeFromExt(ext){
+      if (ext==='pdf') return 'application/pdf';
+      if (ext==='doc') return 'application/msword';
+      if (ext==='docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      return 'application/octet-stream';
     }
   </script>
 </body>
